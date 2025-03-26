@@ -181,8 +181,15 @@ class Writer
                 foreach ($attributes as $attributeName => $attributeValue) {
                     $xmlWriter->writeAttribute($attributeName, $this->variables->stringValue($attributeValue));
                 }
+                $dataAttributes = [];
                 foreach ($data as $key => $value) {
-                    $this->addElement($xmlWriter, $key, $value);
+                    if (preg_match('/^@/', $key)) {
+                        unset($data[$key]);
+                        $xmlWriter->writeAttribute(substr($key, 1), $this->variables->stringValue($value));
+                    }
+                }
+                foreach ($data as $key => $value) {
+                    $this->addElement($xmlWriter, $key, $value, $dataAttributes);
                 }
                 $xmlWriter->endElement();
             } else {
