@@ -64,7 +64,16 @@ class DOMDocument
                 } else {
                     $value = var_export($value, true);
                 }
-                $node->appendChild($document->createCDATASection($value));
+                libxml_use_internal_errors(true);
+                simplexml_load_string(sprintf('<?xml version="1.0"?><root>%s</root>', $value));
+                $errors = libxml_get_errors();
+                $useCdata = count($errors) > 0;
+                libxml_clear_errors();
+                $valueTextNode = $useCdata ?
+                    $document->createCDATASection($value) : $document->createTextNode($value);
+                if ($valueTextNode) {
+                    $node->appendChild($valueTextNode);
+                }
             }
         } else {
             foreach ($config as $key => $value) {
@@ -87,8 +96,17 @@ class DOMDocument
                     } else {
                         $value = var_export($value, true);
                     }
-                    $valueNode->appendChild($document->createCDATASection($value));
-                    $node->appendChild($valueNode);
+                    libxml_use_internal_errors(true);
+                    simplexml_load_string(sprintf('<?xml version="1.0"?><root>%s</root>', $value));
+                    $errors = libxml_get_errors();
+                    $useCdata = count($errors) > 0;
+                    libxml_clear_errors();
+                    $valueTextNode = $useCdata ?
+                        $document->createCDATASection($value) : $document->createTextNode($value);
+                    if ($valueTextNode) {
+                        $valueNode->appendChild($valueTextNode);
+                        $node->appendChild($valueNode);
+                    }
                 }
             }
         }

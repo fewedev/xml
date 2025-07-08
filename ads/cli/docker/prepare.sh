@@ -25,6 +25,7 @@ else
   exit 1
 fi
 
+update-packages
 install-package "php${phpVersion}-curl"
 
 cosyses Composer "${composerVersion}"
