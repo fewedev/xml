@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace FeWeDev\Xml;
 
-use Exception;
 use FeWeDev\Base\Arrays;
 use FeWeDev\Base\Files;
 
@@ -30,11 +29,6 @@ class Reader
     /** @var string */
     private $fileName;
 
-    /**
-     * @param Files     $files
-     * @param Arrays    $arrays
-     * @param SimpleXml $simpleXml
-     */
     public function __construct(Files $files, Arrays $arrays, SimpleXml $simpleXml)
     {
         $this->files = $files;
@@ -43,37 +37,21 @@ class Reader
         $this->simpleXml = $simpleXml;
     }
 
-    /**
-     * @return string
-     */
     public function getBasePath(): string
     {
         return $this->basePath;
     }
 
-    /**
-     * @param string $basePath
-     *
-     * @return void
-     */
     public function setBasePath(string $basePath): void
     {
         $this->basePath = $basePath;
     }
 
-    /**
-     * @return string
-     */
     public function getFileName(): string
     {
         return $this->fileName;
     }
 
-    /**
-     * @param string $fileName
-     *
-     * @return void
-     */
     public function setFileName(string $fileName): void
     {
         $this->fileName = $fileName;
@@ -82,12 +60,9 @@ class Reader
     /**
      * Method to read data from XML file. The retry pause has to be defined in milliseconds.
      *
-     * @param bool $removeEmptyElements
-     * @param int  $retries
-     * @param int  $retryPause
+     * @throws \Exception
      *
      * @return array<mixed, mixed>
-     * @throws Exception
      */
     public function read(
         bool $removeEmptyElements = true,
@@ -99,29 +74,28 @@ class Reader
         if (is_file($fileName)) {
             $data = $this->simpleXml->simpleXmlLoadFile($fileName, $retries, $retryPause);
 
-            if ($data === false) {
-                throw new Exception('Could not load XML file.');
-            } else {
-                $jsonEncoded = json_encode((array) $data);
+            if (false === $data) {
+                throw new \Exception('Could not load XML file.');
+            }
+            $jsonEncoded = json_encode((array) $data);
 
-                if ($jsonEncoded === false) {
-                    throw new Exception(json_last_error_msg());
-                }
+            if (false === $jsonEncoded) {
+                throw new \Exception(json_last_error_msg());
+            }
 
-                $data = json_decode($jsonEncoded, true);
+            $data = json_decode($jsonEncoded, true);
 
-                if (!is_array($data)) {
-                    throw new Exception('Could not decode JSON.');
-                }
+            if (!\is_array($data)) {
+                throw new \Exception('Could not decode JSON.');
+            }
 
-                if ($removeEmptyElements) {
-                    $data = $this->arrays->arrayFilterRecursive($data);
-                }
+            if ($removeEmptyElements) {
+                $data = $this->arrays->arrayFilterRecursive($data);
             }
 
             return $data;
-        } else {
-            throw new Exception(sprintf('Could not read file: %s because: Not a file', $fileName));
         }
+
+        throw new \Exception(sprintf('Could not read file: %s because: Not a file', $fileName));
     }
 }

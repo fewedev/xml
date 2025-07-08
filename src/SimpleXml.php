@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace FeWeDev\Xml;
 
-use Exception;
 use FeWeDev\Base\Variables;
-use LibXMLError;
-use SimpleXMLElement;
-use stdClass;
 
 /**
  * @author      Andreas Knollmann
@@ -20,25 +16,21 @@ class SimpleXml
     /** @var Variables */
     protected $variables;
 
-    /**
-     * @param Variables $variables
-     */
     public function __construct(Variables $variables)
     {
         $this->variables = $variables;
     }
 
     /**
-     * @param string $content
+     * @throws \Exception
      *
-     * @return SimpleXMLElement
-     * @throws Exception
+     * @return \SimpleXMLElement
      */
     public function simpleXmlLoadString(string $content)
     {
         $useErrors = libxml_use_internal_errors(true);
 
-        $xml = simplexml_load_string($content, 'SimpleXMLElement', LIBXML_NOCDATA);
+        $xml = simplexml_load_string($content, 'SimpleXMLElement', \LIBXML_NOCDATA);
 
         $error = null;
 
@@ -47,28 +39,25 @@ class SimpleXml
 
             $error = reset($errors);
 
-            if ($error === false) {
-                throw new Exception('Could not load string.');
+            if (false === $error) {
+                throw new \Exception('Could not load string.');
             }
         }
 
         libxml_clear_errors();
         libxml_use_internal_errors($useErrors);
 
-        if ($error !== null) {
-            throw new Exception($this->formatLibXmlError($error, explode("\n", $content)));
+        if (null !== $error) {
+            throw new \Exception($this->formatLibXmlError($error, explode("\n", $content)));
         }
 
         return $xml;
     }
 
     /**
-     * @param string $fileName
-     * @param int    $retries
-     * @param int    $retryPause
+     * @throws \Exception
      *
-     * @return SimpleXMLElement|false
-     * @throws Exception
+     * @return false|\SimpleXMLElement
      */
     public function simpleXmlLoadFile(
         string $fileName,
@@ -79,13 +68,13 @@ class SimpleXml
 
         $counter = 0;
 
-        do {
-            $counter++;
+        while (true) {
+            ++$counter;
 
             libxml_clear_errors();
             libxml_use_internal_errors(true);
 
-            $xml = simplexml_load_file($fileName, 'SimpleXMLElement', LIBXML_NOCDATA);
+            $xml = simplexml_load_file($fileName, 'SimpleXMLElement', \LIBXML_NOCDATA);
 
             $error = null;
 
@@ -94,8 +83,8 @@ class SimpleXml
 
                 $error = reset($errors);
 
-                if ($error === false) {
-                    throw new Exception('Could not parse XML.');
+                if (false === $error) {
+                    throw new \Exception('Could not parse XML.');
                 }
             }
 
@@ -103,111 +92,106 @@ class SimpleXml
 
             if (false === $xml) {
                 if ($counter > $retries) {
-                    $fileContent = file($fileName, FILE_IGNORE_NEW_LINES);
+                    $fileContent = file($fileName, \FILE_IGNORE_NEW_LINES);
 
-                    throw new Exception(
-                        sprintf(
-                            'Could not read file: %s because: %s',
-                            $fileName,
-                            $this->variables->isEmpty($error) || $fileContent === false ? 'Could not parse XML.' :
-                                $this->formatLibXmlError($error, $fileContent)
-                        )
-                    );
-                } else {
-                    usleep($retryPause * 1000);
+                    throw new \Exception(sprintf('Could not read file: %s because: %s', $fileName, $this->variables->isEmpty($error) || false === $fileContent ? 'Could not parse XML.' : $this->formatLibXmlError($error, $fileContent)));
                 }
+                usleep($retryPause * 1000);
             } else {
                 break;
             }
-        } while (true);
+        }
 
         return $xml;
     }
 
     /**
-     * @param stdClass           $error
-     * @param array<int, string> $content
-     *
-     * @return string
-     */
-    protected function formatXmlError(stdClass $error, array $content): string
-    {
-        $return = '';
-
-        if (array_key_exists($error->line - 1, $content)) {
-            $return .= $content[$error->line - 1]."\n";
-            $return .= str_repeat('-', $error->column)."^\n";
-        }
-
-        switch ($error->level) {
-            case LIBXML_ERR_WARNING:
-                $return .= "Warning $error->code: ";
-                break;
-            case LIBXML_ERR_ERROR:
-                $return .= "Error $error->code: ";
-                break;
-            case LIBXML_ERR_FATAL:
-                $return .= "Fatal Error $error->code: ";
-                break;
-        }
-
-        $return .= trim($error->message)."\n  Line: $error->line"."\n  Column: $error->column";
-
-        return $return;
-    }
-
-    /**
-     * @param LibXMLError        $error
-     * @param array<int, string> $content
-     *
-     * @return string
-     */
-    protected function formatLibXmlError(LibXMLError $error, array $content): string
-    {
-        $return = '';
-
-        if (array_key_exists($error->line - 1, $content)) {
-            $return .= $content[$error->line - 1]."\n";
-            $return .= str_repeat('-', $error->column)."^\n";
-        }
-
-        switch ($error->level) {
-            case LIBXML_ERR_WARNING:
-                $return .= "Warning $error->code: ";
-                break;
-            case LIBXML_ERR_ERROR:
-                $return .= "Error $error->code: ";
-                break;
-            case LIBXML_ERR_FATAL:
-                $return .= "Fatal Error $error->code: ";
-                break;
-        }
-
-        $return .= trim($error->message)."\n  Line: $error->line"."\n  Column: $error->column";
-
-        return $return;
-    }
-
-    /**
-     * @param SimpleXMLElement $xml
+     * @throws \Exception
      *
      * @return array<string, mixed>
-     * @throws Exception
      */
-    public function xmlToArray(SimpleXMLElement $xml): array
+    public function xmlToArray(\SimpleXMLElement $xml): array
     {
         $jsonEncoded = json_encode((array) $xml);
 
-        if ($jsonEncoded === false) {
-            throw new Exception('Could not convert XML to JSON.');
+        if (false === $jsonEncoded) {
+            throw new \Exception('Could not convert XML to JSON.');
         }
 
         $result = json_decode($jsonEncoded, true);
 
-        if (!is_array($result)) {
-            throw new Exception('Could not convert XML to array.');
+        if (!\is_array($result)) {
+            throw new \Exception('Could not convert XML to array.');
         }
 
         return $result;
+    }
+
+    /**
+     * @param array<int, string> $content
+     */
+    protected function formatXmlError(\stdClass $error, array $content): string
+    {
+        $return = '';
+
+        if (\array_key_exists($error->line - 1, $content)) {
+            $return .= $content[$error->line - 1]."\n";
+            $return .= str_repeat('-', $error->column)."^\n";
+        }
+
+        switch ($error->level) {
+            case \LIBXML_ERR_WARNING:
+                $return .= "Warning {$error->code}: ";
+
+                break;
+
+            case \LIBXML_ERR_ERROR:
+                $return .= "Error {$error->code}: ";
+
+                break;
+
+            case \LIBXML_ERR_FATAL:
+                $return .= "Fatal Error {$error->code}: ";
+
+                break;
+        }
+
+        $return .= trim($error->message)."\n  Line: {$error->line}\n  Column: {$error->column}";
+
+        return $return;
+    }
+
+    /**
+     * @param array<int, string> $content
+     */
+    protected function formatLibXmlError(\LibXMLError $error, array $content): string
+    {
+        $return = '';
+
+        if (\array_key_exists($error->line - 1, $content)) {
+            $return .= $content[$error->line - 1]."\n";
+            $return .= str_repeat('-', $error->column)."^\n";
+        }
+
+        switch ($error->level) {
+            case \LIBXML_ERR_WARNING:
+                $return .= "Warning {$error->code}: ";
+
+                break;
+
+            case \LIBXML_ERR_ERROR:
+                $return .= "Error {$error->code}: ";
+
+                break;
+
+            case \LIBXML_ERR_FATAL:
+                $return .= "Fatal Error {$error->code}: ";
+
+                break;
+        }
+
+        $return .= trim($error->message)."\n  Line: {$error->line}\n  Column: {$error->column}";
+
+        return $return;
     }
 }

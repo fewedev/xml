@@ -1,7 +1,7 @@
 {
     "name": "fewedev/xml",
     "description": "Feasible web development XML",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "license": "MIT",
     "keywords": [
         "xml"
@@ -32,6 +32,7 @@
     },
     "scripts": {
         "cs": "vendor/bin/php-cs-fixer fix src",
+        "cs-test": "vendor/bin/php-cs-fixer fix src --dry-run --diff",
         "ps": "vendor/bin/phpstan analyse"
     }
 }

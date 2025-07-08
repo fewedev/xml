@@ -9,7 +9,7 @@
     },
     "cli": {
         "imageName": "fewedev/cli",
-        "imageTag": "8.3",
+        "imageTag": "7.1",
         "containerVolumes": [
             "${systemPath}:/var/www/fewedev/xml:me:w"
         ],

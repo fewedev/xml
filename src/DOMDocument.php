@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace FeWeDev\Xml;
 
-use DOMException;
-use DOMNode;
 use FeWeDev\Base\Arrays;
 use FeWeDev\Base\Variables;
 
@@ -22,10 +20,6 @@ class DOMDocument
     /** @var Variables */
     protected $variables;
 
-    /**
-     * @param Arrays    $arrays
-     * @param Variables $variables
-     */
     public function __construct(Arrays $arrays, Variables $variables)
     {
         $this->arrays = $arrays;
@@ -34,17 +28,26 @@ class DOMDocument
 
     /**
      * @param array<string, mixed> $config
-     * @param \DOMDocument         $document
-     * @param DOMNode              $node
      *
-     * @return void
-     * @throws DOMException
+     * @throws \DOMException
      */
-    public function arrayToXml(array $config, \DOMDocument $document, DOMNode $node): void
-    {
-        if (array_key_exists('@attributes', $config)) {
-            $attributes = $this->arrays->getValue($config, '@attributes', []);
-            if (is_array($attributes)) {
+    public function arrayToXml(
+        array $config,
+        \DOMDocument $document,
+        \DOMNode $node,
+        bool $createEmptyTags = false,
+        bool $collapseEmptyTags = true
+    ): void {
+        if (\array_key_exists(
+            '@attributes',
+            $config
+        )) {
+            $attributes = $this->arrays->getValue(
+                $config,
+                '@attributes',
+                []
+            );
+            if (\is_array($attributes)) {
                 foreach ($attributes as $attributeName => $attributeValue) {
                     $attribute = $document->createAttribute($attributeName);
                     $attribute->value = $attributeValue;
@@ -52,61 +55,103 @@ class DOMDocument
                 }
             }
             unset($config['@attributes']);
-            if (count($config) > 1) {
-                $this->arrayToXml($config, $document, $node);
+            if (\count($config) > 1) {
+                $this->arrayToXml(
+                    $config,
+                    $document,
+                    $node,
+                    $createEmptyTags,
+                    $collapseEmptyTags
+                );
             } else {
                 $values = array_values($config);
                 $value = reset($values);
                 if (is_scalar($value)) {
                     $value = $this->variables->stringValue($value);
-                } elseif (is_object($value) && method_exists($value, '__toString')) {
+                } elseif (\is_object($value) && method_exists(
+                    $value,
+                    '__toString'
+                )) {
                     $value = $value->__toString();
                 } else {
-                    $value = var_export($value, true);
+                    $value = var_export(
+                        $value,
+                        true
+                    );
                 }
                 libxml_use_internal_errors(true);
-                simplexml_load_string(sprintf('<?xml version="1.0"?><root>%s</root>', $value));
+                simplexml_load_string(
+                    sprintf(
+                        '<?xml version="1.0"?><root>%s</root>',
+                        $value
+                    )
+                );
                 $errors = libxml_get_errors();
-                $useCdata = count($errors) > 0;
+                $useCdata = \count($errors) > 0;
                 libxml_clear_errors();
-                $valueTextNode = $useCdata ?
-                    $document->createCDATASection($value) : $document->createTextNode($value);
-                if ($valueTextNode) {
-                    $node->appendChild($valueTextNode);
-                }
+                $valueTextNode = $useCdata ? $document->createCDATASection($value) : $document->createTextNode($value);
+                $node->appendChild($valueTextNode);
             }
         } else {
             foreach ($config as $key => $value) {
-                if (is_array($value)) {
+                if (\is_array($value)) {
                     if ($this->arrays->isAssociative($value)) {
                         $subNode = $node->appendChild($document->createElement($key));
-                        $this->arrayToXml($value, $document, $subNode);
+                        $this->arrayToXml(
+                            $value,
+                            $document,
+                            $subNode,
+                            $createEmptyTags,
+                            $collapseEmptyTags
+                        );
                     } else {
-                        foreach ($value as $valueValue) {
+                        if (\count($value) > 0) {
+                            foreach ($value as $valueValue) {
+                                $subNode = $node->appendChild($document->createElement($key));
+                                $this->arrayToXml(
+                                    $valueValue,
+                                    $document,
+                                    $subNode,
+                                    $createEmptyTags,
+                                    $collapseEmptyTags
+                                );
+                            }
+                        } elseif ($createEmptyTags) {
                             $subNode = $node->appendChild($document->createElement($key));
-                            $this->arrayToXml($valueValue, $document, $subNode);
+                            if (!$collapseEmptyTags) {
+                                $subNode->appendChild($document->createTextNode(''));
+                            }
                         }
                     }
                 } else {
                     $valueNode = $document->createElement($key);
                     if (is_scalar($value)) {
                         $value = $this->variables->stringValue($value);
-                    } elseif (is_object($value) && method_exists($value, '__toString')) {
+                    } elseif (\is_object($value) && method_exists(
+                        $value,
+                        '__toString'
+                    )) {
                         $value = $value->__toString();
                     } else {
-                        $value = var_export($value, true);
+                        $value = var_export(
+                            $value,
+                            true
+                        );
                     }
                     libxml_use_internal_errors(true);
-                    simplexml_load_string(sprintf('<?xml version="1.0"?><root>%s</root>', $value));
+                    simplexml_load_string(
+                        sprintf(
+                            '<?xml version="1.0"?><root>%s</root>',
+                            $value
+                        )
+                    );
                     $errors = libxml_get_errors();
-                    $useCdata = count($errors) > 0;
+                    $useCdata = \count($errors) > 0;
                     libxml_clear_errors();
-                    $valueTextNode = $useCdata ?
-                        $document->createCDATASection($value) : $document->createTextNode($value);
-                    if ($valueTextNode) {
-                        $valueNode->appendChild($valueTextNode);
-                        $node->appendChild($valueNode);
-                    }
+                    $valueTextNode =
+                        $useCdata ? $document->createCDATASection($value) : $document->createTextNode($value);
+                    $valueNode->appendChild($valueTextNode);
+                    $node->appendChild($valueNode);
                 }
             }
         }
@@ -114,13 +159,15 @@ class DOMDocument
 
     /**
      * @param array<string, mixed> $config
-     * @param string               $rootName
      *
-     * @return string
-     * @throws DOMException
+     * @throws \DOMException
      */
-    public function prepareXML(array $config, string $rootName): string
-    {
+    public function prepareXML(
+        array $config,
+        string $rootName,
+        bool $createEmptyTags = false,
+        bool $collapseEmptyTags = true
+    ): string {
         $document = new \DOMDocument('1.0');
 
         $document->encoding = 'utf-8';
@@ -129,12 +176,18 @@ class DOMDocument
 
         $rootNode = $document->appendChild($document->createElement($rootName));
 
-        $this->arrayToXml($config, $document, $rootNode);
+        $this->arrayToXml(
+            $config,
+            $document,
+            $rootNode,
+            $createEmptyTags,
+            $collapseEmptyTags
+        );
 
         $result = $document->saveXML();
 
-        if ($result === false) {
-            throw new DOMException('Could not save XML');
+        if (false === $result) {
+            throw new \DOMException('Could not save XML');
         }
 
         return $result;
