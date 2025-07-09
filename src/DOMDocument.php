@@ -170,7 +170,7 @@ class DOMDocument
     ): string {
         $document = new \DOMDocument('1.0');
 
-        $document->encoding = 'utf-8';
+        $document->encoding = 'UTF-8';
         $document->preserveWhiteSpace = false;
         $document->formatOutput = true;
 
